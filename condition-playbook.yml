@@ -1,0 +1,66 @@
+#The given playbook attempts to start mysql service on all_servers.
+#Use the when condition to run this task if the host (ansible_host) is the database server.
+# We have created a group for web servers. Similarly create a group for database servers named 'db_servers' and add db1 server to it
+
+# # Sample Inventory File
+# # Web Servers
+# web1 ansible_host=server1.company.com ansible_connection=ssh ansible_user=root ansible_ssh_pass=Password123!
+# web2 ansible_host=server2.company.com ansible_connection=ssh ansible_user=root ansible_ssh_pass=Password123!
+# web3 ansible_host=server3.company.com ansible_connection=ssh ansible_user=root ansible_ssh_pass=Password123!
+# # Database Servers
+# db1 ansible_host=server4.company.com ansible_connection=winrm ansible_user=administrator ansible_ssh_pass=Password123!
+# [web_servers]
+# web1
+# web2
+# web3
+# [db_servers]
+# db1
+- name: "Execute a script on all web server nodes"
+  hosts: all_servers
+  tasks:
+    - service: "name=mysql state=started"
+      when: 'ansible_host=="server4.company.com"'
+
+##AGE check
+- name: "Am I an Adult or a Child?"
+  hosts: localhost
+  vars:
+    age: 25
+  tasks:
+    - command: 'echo "I am a Child"'
+      when: "age < 18"
+    - command: 'echo "I am an Adult"'
+      when: "age >= 18"
+
+#Install NGINX with correct package manager
+# ansible_os_family holds the value of OS family
+- name: "Install NGINX"
+  hosts: all
+  tasks:
+    - name: "Install nginx on DEBIAN"
+      apt:
+        name: nginx
+        state: present
+      when: ansible_os_family == "Debian" and
+        ansible_distribution_version == "18.04"
+    - name: "Install nginx on RED HAT"
+      yum:
+        name: nginx
+        state: present
+      when: ansible_os_family == "RedHat"    or
+        ansible_os_family == "SUSE"
+
+#Check if service is down and trigger a mail
+- name: "Check and alert"
+  hosts: all
+  tasks:
+    - command: service httpd status
+      register: result
+    - mail:
+        to: nithinbs18@gmail.com
+        subject: service down
+        body: httpd service is down
+        when: result.stdout.find('down') != -1
+# find() in the above when line checks the content if found it returns the position of the string if not fount it returns -1
+# any value other than -1 indicated the service is down
+

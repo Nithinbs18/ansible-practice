@@ -1,0 +1,77 @@
+- name: "DevOps challange  Nithin Bhardwaj Sridhar"
+  hosts: localhost
+  tasks:
+    - name: Ensure context directory exists
+      file:
+        path: ./docker-content
+        state: directory
+    - name: Check if default.conf exists
+      stat:
+        path: ./docker-content/default.conf
+      register: default_result
+    - name: Ansible create file with content if default.conf is not present
+      copy:
+        dest: "./docker-content/default.conf"
+        content: |
+          server {
+            listen       80;
+            server_name  localhost;
+            location /index.html {
+                root   /usr/share/nginx/html;
+                index  index.html index.htm;
+          try_files $uri /index.html;
+            }
+          }
+      when: not default_result.stat.exists
+    - name: Record current time
+      command: date
+      register: date_result
+    - name: Create/Overwrite file index.html
+      copy:
+        dest: "./docker-content/index.html"
+        content: |
+          <html lang="en">
+            <head>
+              <title>Time</title>
+              <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" />
+              <style>
+                html,
+                body {
+                  height: 100%;
+                  background-color: #333;
+                }
+                body {
+                  display: -ms-flexbox;
+                  display: flex;
+                  color: #fff;
+                  text-shadow: 0 0.05rem 0.1rem rgba(0, 0, 0, 0.5);
+                  box-shadow: inset 0 0 5rem rgba(0, 0, 0, 0.5);
+                }
+              </style>
+            </head>
+            <body class="text-center">
+              <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
+                <header class="masthead mb-auto">
+                <h5>Nithin Bhardwaj Sridhar</h5>
+                </header>
+                <main role="main" class="inner cover">
+                  <h1 class="cover-heading">Created Time: {{date_result.stdout}}</h1>
+                </main>
+                <footer class="mastfoot mt-auto"></footer>
+              </div>
+            </body>
+          </html>
+    - name: Build docker image
+      docker_image:
+        path: .
+        name: task-app
+        tag: latest
+        force: yes
+    - name: Create/Re-create and start the container
+      docker_container:
+        name: nithin-task
+        image: task-app
+        state: started
+        recreate: yes
+        ports:
+          - "80:80"
